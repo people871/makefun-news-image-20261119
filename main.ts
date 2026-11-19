@@ -37,6 +37,21 @@ mkdirSync(outputDir, { recursive: true });
 writeFileSync(outputPath, image);
 
 const writtenBack = readFileSync(outputPath);
+if (writtenBack.length !== image.length) {
+  throw new Error(
+    `output entry.png is ${writtenBack.length} bytes, expected ${image.length}`,
+  );
+}
+// The image is JPEG bytes: guard against a truncated write as well as
+// a corrupted one — a valid JPEG starts FFD8 and ends FFD9.
+if (
+  writtenBack[0] !== 0xff ||
+  writtenBack[1] !== 0xd8 ||
+  writtenBack[writtenBack.length - 2] !== 0xff ||
+  writtenBack[writtenBack.length - 1] !== 0xd9
+) {
+  throw new Error('output entry.png is not a complete JPEG image');
+}
 if (sha256(writtenBack) !== sha256(image)) {
   throw new Error('output entry.png differs from the repository image');
 }
